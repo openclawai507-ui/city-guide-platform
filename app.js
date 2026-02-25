@@ -647,44 +647,120 @@ async function renderBookings(app) {
 
 // --- GUIDE REGISTRATION ---
 function renderGuideRegister(app) {
-  app.innerHTML = `<div class="page-enter" style="max-width:640px;margin:0 auto">
+  const langGroups = {
+    'Popular': ['Hindi','English','Urdu','Punjabi'],
+    'Regional': ['Marathi','Gujarati','Tamil','Bengali','Rajasthani','Mewari','Konkani','Malayalam','Kannada','Telugu','Odia','Assamese'],
+    'Classical': ['Sanskrit'],
+    'International': ['French','German','Spanish','Portuguese','Japanese','Mandarin','Korean','Russian','Arabic']
+  };
+  const specGroups = {
+    '🏛️ Heritage': ['History','Architecture','Heritage Walks','Museums','Royal Heritage'],
+    '🍽️ Food & Culture': ['Food','Culture','Cooking Classes','Local Life','Festivals'],
+    '📸 Experience': ['Photography','Adventure','Nature','Eco-Tourism','Sunrise/Sunset'],
+    '🎭 Arts & More': ['Art','Crafts','Music','Bollywood','Spiritual','Shopping','Nightlife','Water Sports']
+  };
+
+  app.innerHTML = `<div class="page-enter" style="max-width:680px;margin:0 auto">
     <div class="section-header text-center">
       <h2 class="section-title">Become a Guide</h2>
       <p class="section-subtitle">Share your city's stories with travelers from around the world</p>
     </div>
+
+    <!-- Progress Steps -->
+    <div style="display:flex;gap:4px;margin-bottom:24px">
+      ${['Profile', 'Language Quiz', 'City Quiz', 'Submit'].map((s, i) => `
+        <div style="flex:1;text-align:center">
+          <div style="height:4px;border-radius:2px;background:${i === 0 ? 'var(--md-primary)' : 'var(--md-outline-variant)'};margin-bottom:8px"></div>
+          <div style="font-size:11px;font-weight:600;color:${i === 0 ? 'var(--md-primary)' : 'var(--md-outline)'}">Step ${i + 1}</div>
+          <div style="font-size:12px;color:var(--md-on-surface-variant)">${s}</div>
+        </div>
+      `).join('')}
+    </div>
+
     <div class="md-card-elevated" style="padding:24px">
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px">
-        ${['Fill Profile', 'Language Quiz', 'City Quiz', 'Review & Submit'].map((s, i) => `
-          <div style="flex:1;min-width:120px;text-align:center;padding:12px;border-radius:var(--md-radius-sm);background:var(--md-surface-container);opacity:${i === 0 ? 1 : 0.5}">
-            <div style="width:28px;height:28px;border-radius:50%;background:${i === 0 ? 'var(--md-primary)' : 'var(--md-outline-variant)'};color:${i === 0 ? '#fff' : 'var(--md-outline)'};display:flex;align-items:center;justify-content:center;margin:0 auto 6px;font-size:14px;font-weight:600">${i + 1}</div>
-            <div style="font-size:12px;font-weight:500">${s}</div>
-          </div>
-        `).join('')}
-      </div>
       <form id="guide-register-form" onsubmit="submitGuideRegistration(event)">
-        <div class="md-field"><label>Full Name *</label><input class="md-input" name="name" required placeholder="Your full name"></div>
-        <div class="md-field"><label>City *</label><select class="md-select" name="city" required><option value="">Select your city</option>${CITIES.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}</select></div>
-        <div class="md-field"><label>Bio *</label><textarea class="md-textarea" name="bio" required rows="4" placeholder="Tell travelers about yourself, your experience, and what makes your tours special..." minlength="50"></textarea><div class="md-helper">Minimum 50 characters</div></div>
-        <div class="md-field">
-          <label>Languages * <span style="font-size:12px;color:var(--md-outline)">(select all that apply)</span></label>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px" id="lang-chips">
-            ${['Hindi','English','Urdu','Punjabi','Marathi','Gujarati','Tamil','Bengali','Rajasthani','Mewari','Konkani','Malayalam','Sanskrit','French','German','Spanish','Portuguese','Japanese'].map(l => `<label class="chip" onclick="this.classList.toggle('selected')"><input type="checkbox" name="languages" value="${l}" style="display:none">${l}</label>`).join('')}
+        <!-- Basic Info -->
+        <div style="margin-bottom:24px">
+          <h3 style="font-size:16px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px"><span class="material-symbols-rounded" style="color:var(--md-primary)">person</span> Basic Information</h3>
+          <div class="md-field"><label>Full Name *</label><input class="md-input" name="name" required placeholder="Your full name"></div>
+          <div class="md-field"><label>City *</label><select class="md-select" name="city" required><option value="">Select your city</option>${CITIES.map(c => `<option value="${c.id}">${c.emoji} ${c.name}</option>`).join('')}</select></div>
+          <div class="md-field"><label>Bio *</label><textarea class="md-textarea" name="bio" required rows="4" placeholder="Tell travelers about yourself, your experience, and what makes your tours special..." minlength="50"></textarea><div class="md-helper">Minimum 50 characters — make it personal and engaging</div></div>
+        </div>
+
+        <!-- Languages -->
+        <div style="margin-bottom:24px">
+          <h3 style="font-size:16px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:8px"><span class="material-symbols-rounded" style="color:var(--md-primary)">translate</span> Languages You Speak *</h3>
+          <p style="font-size:13px;color:var(--md-outline);margin-bottom:12px">Select all languages you can confidently guide tours in</p>
+          ${Object.entries(langGroups).map(([group, langs]) => `
+            <div style="margin-bottom:12px">
+              <div style="font-size:12px;font-weight:600;color:var(--md-on-surface-variant);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">${group}</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                ${langs.map(l => `<label class="chip" style="cursor:pointer;user-select:none;transition:all 0.2s" onclick="toggleRegChip(this)"><input type="checkbox" name="languages" value="${l}" style="display:none"><span class="material-symbols-rounded" style="font-size:16px;display:none;color:var(--md-primary)">check</span>${l}</label>`).join('')}
+              </div>
+            </div>
+          `).join('')}
+          <div id="lang-count" style="font-size:12px;color:var(--md-outline);margin-top:4px">0 selected</div>
+        </div>
+
+        <!-- Specialties -->
+        <div style="margin-bottom:24px">
+          <h3 style="font-size:16px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:8px"><span class="material-symbols-rounded" style="color:var(--md-primary)">interests</span> Your Specialties *</h3>
+          <p style="font-size:13px;color:var(--md-outline);margin-bottom:12px">What kind of tours do you excel at? Pick at least 2</p>
+          ${Object.entries(specGroups).map(([group, specs]) => `
+            <div style="margin-bottom:12px">
+              <div style="font-size:12px;font-weight:600;color:var(--md-on-surface-variant);margin-bottom:6px">${group}</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                ${specs.map(s => `<label class="chip" style="cursor:pointer;user-select:none;transition:all 0.2s" onclick="toggleRegChip(this)"><input type="checkbox" name="specialties" value="${s}" style="display:none"><span class="material-symbols-rounded" style="font-size:16px;display:none;color:var(--md-primary)">check</span>${s}</label>`).join('')}
+              </div>
+            </div>
+          `).join('')}
+          <div id="spec-count" style="font-size:12px;color:var(--md-outline);margin-top:4px">0 selected</div>
+        </div>
+
+        <!-- Contact -->
+        <div style="margin-bottom:24px">
+          <h3 style="font-size:16px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px"><span class="material-symbols-rounded" style="color:var(--md-primary)">contact_phone</span> Contact Details</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="md-field"><label>Phone *</label><input class="md-input" name="phone" required placeholder="+91-XXXXXXXXXX"></div>
+            <div class="md-field"><label>Email *</label><input class="md-input" name="email" type="email" required placeholder="guide@email.com"></div>
           </div>
         </div>
-        <div class="md-field">
-          <label>Specialties *</label>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
-            ${['History','Food','Architecture','Adventure','Photography','Culture','Spiritual','Nature','Shopping','Nightlife','Art','Crafts','Music','Bollywood','Heritage Walks'].map(s => `<label class="chip" onclick="this.classList.toggle('selected')"><input type="checkbox" name="specialties" value="${s}" style="display:none">${s}</label>`).join('')}
+
+        <!-- Pricing Note -->
+        <div style="padding:16px;background:var(--md-primary-container);border-radius:var(--md-radius-md);margin-bottom:24px;display:flex;gap:12px;align-items:start">
+          <span class="material-symbols-rounded" style="color:var(--md-on-primary-container);font-size:22px;flex-shrink:0;margin-top:2px">info</span>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--md-on-primary-container);margin-bottom:4px">💰 About Pricing</div>
+            <div style="font-size:13px;color:var(--md-on-primary-container);line-height:1.5">Your hourly rate will be determined after your quiz results and admin review. We assess your language skills, city knowledge, and experience to set a fair price that reflects your expertise.</div>
           </div>
         </div>
-        <div class="md-field"><label>Price per Hour (₹) *</label><input class="md-input" name="price" type="number" min="200" max="5000" step="50" required placeholder="800"></div>
-        <div class="md-field"><label>Phone *</label><input class="md-input" name="phone" required placeholder="+91-XXXXXXXXXX"></div>
-        <div class="md-field"><label>Email *</label><input class="md-input" name="email" type="email" required placeholder="guide@email.com"></div>
+
         <button type="submit" class="md-btn md-btn-filled md-btn-lg" style="width:100%"><span class="material-symbols-rounded">arrow_forward</span>Continue to Language Quiz</button>
       </form>
     </div>
   </div>`;
 }
+
+// Toggle chip with checkmark
+window.toggleRegChip = function(el) {
+  el.classList.toggle('selected');
+  const check = el.querySelector('.material-symbols-rounded');
+  const input = el.querySelector('input');
+  if (el.classList.contains('selected')) {
+    check.style.display = 'inline';
+    input.checked = true;
+  } else {
+    check.style.display = 'none';
+    input.checked = false;
+  }
+  // Update counts
+  const langCount = document.querySelectorAll('[name=languages]:checked').length;
+  const specCount = document.querySelectorAll('[name=specialties]:checked').length;
+  const lc = document.getElementById('lang-count');
+  const sc = document.getElementById('spec-count');
+  if (lc) lc.textContent = langCount + ' selected';
+  if (sc) sc.textContent = specCount + ' selected';
+};
 
 window.submitGuideRegistration = function(e) {
   e.preventDefault();
@@ -693,12 +769,13 @@ window.submitGuideRegistration = function(e) {
   const languages = fd.getAll('languages');
   const specialties = fd.getAll('specialties');
   if (languages.length === 0) { snackbar('Please select at least one language', 'warning'); return; }
-  if (specialties.length === 0) { snackbar('Please select at least one specialty', 'warning'); return; }
-  // Store temp data
+  if (specialties.length < 2) { snackbar('Please select at least 2 specialties', 'warning'); return; }
+  // Store temp data (price will be set after admin review)
   window._pendingGuide = {
     name: fd.get('name'), city: fd.get('city'), bio: fd.get('bio'),
     languages, specialties,
-    price: parseInt(fd.get('price')), phone: fd.get('phone'), email: fd.get('email')
+    price: 0, phone: fd.get('phone'), email: fd.get('email'),
+    quizAttempts: { language: 0, city: 0 }
   };
   logActivity('guide_registration_started', fd.get('name'), fd.get('city'));
   navigateTo('/quiz/language');
@@ -720,7 +797,13 @@ function renderQuiz(app, route) {
     title = `${getCityName(city)} Knowledge Quiz`;
   } else { navigateTo('/'); return; }
 
-  window._quizState = { questions, current: 0, score: 0, answers: [], type };
+  window._quizState = { questions, current: 0, score: 0, answers: [], type, timings: [], questionStartTime: Date.now(), attemptNumber: 1 };
+  // Track attempts
+  if (window._pendingGuide) {
+    window._pendingGuide.quizAttempts = window._pendingGuide.quizAttempts || { language: 0, city: 0 };
+    window._pendingGuide.quizAttempts[type] = (window._pendingGuide.quizAttempts[type] || 0) + 1;
+    window._quizState.attemptNumber = window._pendingGuide.quizAttempts[type];
+  }
   renderQuizQuestion(app, title);
 }
 
@@ -735,7 +818,16 @@ function renderQuizQuestion(app, title) {
 
   app.innerHTML = `<div class="page-enter quiz-container">
     <button class="md-btn md-btn-text mb-16" onclick="history.back()"><span class="material-symbols-rounded">arrow_back</span>Back</button>
-    <h2 style="font-size:20px;font-weight:600;margin-bottom:20px">${title}</h2>
+    <div class="flex justify-between items-center mb-16" style="flex-wrap:wrap;gap:8px">
+      <h2 style="font-size:20px;font-weight:600">${title}</h2>
+      <div style="display:flex;align-items:center;gap:8px">
+        ${qs.attemptNumber > 1 ? `<span class="badge badge-warning">Attempt #${qs.attemptNumber}</span>` : ''}
+        <div style="display:flex;align-items:center;gap:4px;font-size:14px;font-weight:500;color:var(--md-on-surface-variant);background:var(--md-surface-container);padding:6px 12px;border-radius:var(--md-radius-full)">
+          <span class="material-symbols-rounded" style="font-size:18px">timer</span>
+          <span id="quiz-timer">0s</span>
+        </div>
+      </div>
+    </div>
     <div class="quiz-progress">
       <div class="quiz-progress-bar"><div class="quiz-progress-fill" style="width:${progress}%"></div></div>
       <div class="quiz-progress-text">${qs.current + 1}/${qs.questions.length}</div>
@@ -749,26 +841,51 @@ function renderQuizQuestion(app, title) {
         </div>
       `).join('')}
     </div>
-    <div id="quiz-next" style="margin-top:24px;text-align:center;display:none">
+    <div id="quiz-time-taken" style="margin-top:12px;text-align:center;font-size:13px;color:var(--md-outline);display:none"></div>
+    <div id="quiz-next" style="margin-top:16px;text-align:center;display:none">
       <button class="md-btn md-btn-filled md-btn-lg" onclick="nextQuizQuestion()">
         <span class="material-symbols-rounded">${qs.current < qs.questions.length - 1 ? 'arrow_forward' : 'done'}</span>
         ${qs.current < qs.questions.length - 1 ? 'Next Question' : 'See Results'}
       </button>
     </div>
   </div>`;
+
+  // Start timer for this question
+  qs.questionStartTime = Date.now();
+  window._quizTimerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - qs.questionStartTime) / 1000);
+    const timerEl = document.getElementById('quiz-timer');
+    if (timerEl) timerEl.textContent = elapsed >= 60 ? `${Math.floor(elapsed/60)}m ${elapsed%60}s` : `${elapsed}s`;
+  }, 1000);
 }
 
 window.selectQuizOption = function(el, idx, correct) {
   if (el.closest('.quiz-options').dataset.answered) return;
   el.closest('.quiz-options').dataset.answered = 'true';
   const qs = window._quizState;
+
+  // Record time taken for this question
+  const timeTaken = Math.round((Date.now() - qs.questionStartTime) / 1000);
+  qs.timings.push(timeTaken);
+  if (window._quizTimerInterval) clearInterval(window._quizTimerInterval);
+
   qs.answers.push(idx);
   if (idx === correct) qs.score++;
+
   // Show correct/wrong
   el.closest('.quiz-options').querySelectorAll('.quiz-option').forEach((opt, i) => {
     if (i === correct) opt.classList.add('correct');
     else if (i === idx && idx !== correct) opt.classList.add('wrong');
   });
+
+  // Show time taken
+  const timeEl = document.getElementById('quiz-time-taken');
+  if (timeEl) {
+    const timeStr = timeTaken >= 60 ? `${Math.floor(timeTaken/60)}m ${timeTaken%60}s` : `${timeTaken}s`;
+    timeEl.innerHTML = `<span class="material-symbols-rounded" style="font-size:14px;vertical-align:middle">timer</span> Answered in <strong>${timeStr}</strong>`;
+    timeEl.style.display = '';
+  }
+
   document.getElementById('quiz-next').style.display = '';
 };
 
@@ -782,31 +899,84 @@ async function renderQuizResult(app) {
   const qs = window._quizState;
   const pct = Math.round((qs.score / qs.questions.length) * 100);
   const passed = pct >= 70;
+  const totalTime = qs.timings.reduce((s, t) => s + t, 0);
+  const avgTime = qs.timings.length ? Math.round(totalTime / qs.timings.length) : 0;
+  const slowest = Math.max(...(qs.timings.length ? qs.timings : [0]));
+  const fastest = Math.min(...(qs.timings.length ? qs.timings : [0]));
+  if (window._quizTimerInterval) clearInterval(window._quizTimerInterval);
 
-  // Save quiz attempt
+  // Save quiz attempt with timing data
   if (window._pendingGuide) {
     await db.quizAttempts.add({
       id: 'qa_' + Date.now(),
       guideId: null,
+      guideName: window._pendingGuide.name,
       type: qs.type,
       score: pct,
       passed,
       answers: qs.answers,
+      timings: qs.timings,
+      totalTimeSec: totalTime,
+      avgTimeSec: avgTime,
+      attemptNumber: qs.attemptNumber,
       createdAt: Date.now()
     });
-    await logActivity('quiz_completed', window._pendingGuide.name, qs.type, { score: pct, passed });
+    await logActivity('quiz_completed', window._pendingGuide.name, qs.type, { score: pct, passed, attempt: qs.attemptNumber, totalTime, avgTime });
   }
+
+  const formatTime = s => s >= 60 ? `${Math.floor(s/60)}m ${s%60}s` : `${s}s`;
 
   app.innerHTML = `<div class="page-enter quiz-container">
     <div class="quiz-result">
       <div class="quiz-result-icon">${passed ? '🎉' : '😔'}</div>
       <div class="quiz-result-score" style="color:${passed ? 'var(--md-success)' : 'var(--md-error)'}">${pct}%</div>
       <div class="quiz-result-text">${qs.score}/${qs.questions.length} correct — ${passed ? 'You passed!' : 'You need 70% to pass'}</div>
-      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+
+      <!-- Timing Stats -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin:20px auto;max-width:450px">
+        <div class="stat-card" style="padding:14px;text-align:center">
+          <div style="font-size:20px;font-weight:700;color:var(--md-primary)">${formatTime(totalTime)}</div>
+          <div style="font-size:11px;color:var(--md-outline)">Total Time</div>
+        </div>
+        <div class="stat-card" style="padding:14px;text-align:center">
+          <div style="font-size:20px;font-weight:700;color:var(--md-primary)">${formatTime(avgTime)}</div>
+          <div style="font-size:11px;color:var(--md-outline)">Avg/Question</div>
+        </div>
+        <div class="stat-card" style="padding:14px;text-align:center">
+          <div style="font-size:20px;font-weight:700;color:var(--md-success)">${formatTime(fastest)}</div>
+          <div style="font-size:11px;color:var(--md-outline)">Fastest</div>
+        </div>
+        <div class="stat-card" style="padding:14px;text-align:center">
+          <div style="font-size:20px;font-weight:700;color:var(--md-error)">${formatTime(slowest)}</div>
+          <div style="font-size:11px;color:var(--md-outline)">Slowest</div>
+        </div>
+      </div>
+
+      ${qs.attemptNumber > 1 ? `<div style="font-size:13px;color:var(--md-outline);margin-bottom:16px">Attempt #${qs.attemptNumber}</div>` : ''}
+
+      <!-- Per-Question Breakdown -->
+      <details style="text-align:left;margin:16px auto;max-width:450px">
+        <summary style="font-size:14px;font-weight:600;cursor:pointer;color:var(--md-primary);margin-bottom:8px">View Question Breakdown</summary>
+        <div style="font-size:13px">
+          ${qs.questions.map((q, i) => {
+            const correct = qs.answers[i] === q.correct;
+            const time = qs.timings[i] || 0;
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--md-outline-variant)">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="material-symbols-rounded" style="font-size:18px;color:${correct ? 'var(--md-success)' : 'var(--md-error)'}">${correct ? 'check_circle' : 'cancel'}</span>
+                <span style="color:var(--md-on-surface-variant)">Q${i + 1}</span>
+              </div>
+              <span style="color:var(--md-outline)">${formatTime(time)}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </details>
+
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px">
         ${passed ? (qs.type === 'language'
           ? `<button class="md-btn md-btn-filled md-btn-lg" onclick="navigateTo('/quiz/city')"><span class="material-symbols-rounded">arrow_forward</span>Continue to City Quiz</button>`
           : `<button class="md-btn md-btn-filled md-btn-lg" onclick="finalizeGuideRegistration()"><span class="material-symbols-rounded">check</span>Submit Application</button>`
-        ) : `<button class="md-btn md-btn-filled md-btn-lg" onclick="navigateTo('/quiz/${qs.type}')"><span class="material-symbols-rounded">refresh</span>Try Again</button>`}
+        ) : `<button class="md-btn md-btn-filled md-btn-lg" onclick="navigateTo('/quiz/${qs.type}')"><span class="material-symbols-rounded">refresh</span>Try Again (Attempt #${qs.attemptNumber + 1})</button>`}
         <button class="md-btn md-btn-outlined" onclick="navigateTo('/')">Go Home</button>
       </div>
     </div>
@@ -820,16 +990,18 @@ window.finalizeGuideRegistration = async function() {
     id: 'g_' + Date.now(),
     name: g.name, city: g.city, bio: g.bio,
     languages: g.languages, specialties: g.specialties,
-    price: g.price, phone: g.phone, email: g.email,
+    price: 0, // Set by admin after review
+    phone: g.phone, email: g.email,
     rating: 0, reviewCount: 0,
     status: 'pending',
+    quizAttempts: g.quizAttempts || { language: 1, city: 1 },
     avatar: null,
     createdAt: Date.now()
   };
   await db.guides.add(guide);
-  await logActivity('guide_registered', g.name, g.city, { status: 'pending', guideId: guide.id });
+  await logActivity('guide_registered', g.name, g.city, { status: 'pending', guideId: guide.id, quizAttempts: guide.quizAttempts });
   window._pendingGuide = null;
-  snackbar('Application submitted! Admin will review your profile.', 'success');
+  snackbar('Application submitted! Admin will review your profile and set your rate.', 'success');
   navigateTo('/');
 };
 
@@ -1130,13 +1302,23 @@ async function adminGuidesTab(el) {
             <div class="guide-avatar" style="width:44px;height:44px"><img src="${getAvatar(g.name)}" alt="${g.name}"></div>
             <div>
               <div style="font-weight:600">${g.name}</div>
-              <div style="font-size:13px;color:var(--md-outline)">${getCityName(g.city)} · ${g.languages.join(', ')} · ₹${g.price}/hr</div>
+              <div style="font-size:13px;color:var(--md-outline)">${getCityName(g.city)} · ${g.languages.join(', ')}</div>
               <div style="font-size:12px;color:var(--md-outline);margin-top:2px">${g.bio.substring(0, 100)}...</div>
+              ${g.quizAttempts ? `<div style="font-size:11px;margin-top:4px;display:flex;gap:8px;flex-wrap:wrap">
+                <span class="badge badge-info" style="font-size:10px">Lang Quiz: ${g.quizAttempts.language || 1} attempt${(g.quizAttempts.language || 1) > 1 ? 's' : ''}</span>
+                <span class="badge badge-info" style="font-size:10px">City Quiz: ${g.quizAttempts.city || 1} attempt${(g.quizAttempts.city || 1) > 1 ? 's' : ''}</span>
+              </div>` : ''}
             </div>
           </div>
-          <div class="flex gap-8">
-            <button class="md-btn md-btn-filled md-btn-sm" onclick="adminApproveGuide('${g.id}')"><span class="material-symbols-rounded">check</span>Approve</button>
-            <button class="md-btn md-btn-outlined md-btn-sm" style="color:var(--md-error);border-color:var(--md-error)" onclick="adminRejectGuide('${g.id}')"><span class="material-symbols-rounded">close</span>Reject</button>
+          <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+            <div style="display:flex;align-items:center;gap:6px">
+              <label style="font-size:12px;color:var(--md-outline);white-space:nowrap">₹/hr:</label>
+              <input type="number" class="md-input" id="price-${g.id}" min="200" max="5000" step="50" placeholder="Set rate" style="width:100px;padding:6px 10px;font-size:13px">
+            </div>
+            <div class="flex gap-8">
+              <button class="md-btn md-btn-filled md-btn-sm" onclick="adminApproveGuideWithPrice('${g.id}')"><span class="material-symbols-rounded">check</span>Approve</button>
+              <button class="md-btn md-btn-outlined md-btn-sm" style="color:var(--md-error);border-color:var(--md-error)" onclick="adminRejectGuide('${g.id}')"><span class="material-symbols-rounded">close</span>Reject</button>
+            </div>
           </div>
         </div>
       </div>`).join('')}</div>` : ''}
@@ -1160,6 +1342,17 @@ async function adminGuidesTab(el) {
       ${other.map(g => `<div class="md-card" style="padding:12px;margin-bottom:8px"><div class="flex justify-between items-center"><span>${g.name} — ${getCityName(g.city)}</span><span class="badge badge-error">${g.status}</span></div></div>`).join('')}` : ''}
   `;
 }
+
+window.adminApproveGuideWithPrice = async function(id) {
+  const priceInput = document.getElementById('price-' + id);
+  const price = priceInput ? parseInt(priceInput.value) : 0;
+  if (!price || price < 200) { snackbar('Please set an hourly rate (min ₹200) before approving', 'warning'); if (priceInput) priceInput.focus(); return; }
+  await db.guides.update(id, { status: 'verified', price });
+  const g = await db.guides.get(id);
+  await logActivity('guide_approved', 'admin', id, { name: g?.name, price });
+  snackbar(`${g?.name || 'Guide'} approved at ₹${price}/hr!`, 'success');
+  loadAdminTab('guides');
+};
 
 window.adminApproveGuide = async function(id) {
   await db.guides.update(id, { status: 'verified' });
