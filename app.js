@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   handleRoute();
   window.addEventListener('hashchange', handleRoute);
   // PWA
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   // Install prompt
   let deferredPrompt;
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; document.getElementById('install-banner').classList.remove('hidden'); });
