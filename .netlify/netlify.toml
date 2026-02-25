@@ -1,0 +1,26 @@
+plugins = []
+headers = []
+redirects = []
+
+[functions]
+
+[functions."*"]
+
+[build]
+publish = "/Users/abhinavjain/.openclaw/workspace/city-guide-platform"
+publishOrigin = "default"
+base = "/Users/abhinavjain/.openclaw/workspace/city-guide-platform"
+
+[build.environment]
+
+[build.processing]
+
+[build.processing.css]
+
+[build.processing.html]
+
+[build.processing.images]
+
+[build.processing.js]
+
+[build.services]

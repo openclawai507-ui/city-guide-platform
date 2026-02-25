@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CityGuide India — Discover India with Local Experts</title>
+<meta name="description" content="Find verified local guides across India's most beautiful cities. Book personalized tours with expert guides who speak your language.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<!-- Header -->
+<header class="header" id="header">
+  <div class="header-inner container">
+    <a href="#/" class="logo">
+      <span class="material-icons-round">explore</span>
+      <span class="logo-text">City<strong>Guide</strong></span>
+    </a>
+    <nav class="nav" id="nav">
+      <a href="#/" class="nav-link active" data-page="home">Home</a>
+      <a href="#/cities" class="nav-link" data-page="cities">Cities</a>
+      <a href="#/guides" class="nav-link" data-page="guides">Guides</a>
+      <a href="#/bookings" class="nav-link" data-page="bookings">My Bookings</a>
+    </nav>
+    <div class="header-actions">
+      <button class="icon-btn" id="theme-toggle" aria-label="Toggle dark mode">
+        <span class="material-icons-round">dark_mode</span>
+      </button>
+      <button class="btn btn-outline btn-sm" id="guide-register-btn" onclick="navigateTo('/register-guide')">Become a Guide</button>
+      <button class="icon-btn mobile-menu-btn" id="mobile-menu-btn" aria-label="Menu">
+        <span class="material-icons-round">menu</span>
+      </button>
+    </div>
+  </div>
+  <!-- Mobile Nav -->
+  <div class="mobile-nav" id="mobile-nav">
+    <a href="#/" class="mobile-nav-link" data-page="home">Home</a>
+    <a href="#/cities" class="mobile-nav-link" data-page="cities">Cities</a>
+    <a href="#/guides" class="mobile-nav-link" data-page="guides">Guides</a>
+    <a href="#/bookings" class="mobile-nav-link" data-page="bookings">My Bookings</a>
+    <a href="#/register-guide" class="mobile-nav-link" data-page="register-guide">Become a Guide</a>
+  </div>
+</header>
+
+<!-- Main Content -->
+<main id="app"></main>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="logo">
+          <span class="material-icons-round">explore</span>
+          <span class="logo-text">City<strong>Guide</strong></span>
+        </div>
+        <p>Discover India through the eyes of passionate local guides. Authentic experiences, real connections.</p>
+      </div>
+      <div class="footer-links">
+        <h4>Explore</h4>
+        <a href="#/cities">All Cities</a>
+        <a href="#/guides">Find Guides</a>
+        <a href="#/register-guide">Become a Guide</a>
+      </div>
+      <div class="footer-links">
+        <h4>Cities</h4>
+        <a href="#/city/delhi">Delhi</a>
+        <a href="#/city/mumbai">Mumbai</a>
+        <a href="#/city/jaipur">Jaipur</a>
+        <a href="#/city/udaipur">Udaipur</a>
+        <a href="#/city/varanasi">Varanasi</a>
+        <a href="#/city/goa">Goa</a>
+      </div>
+      <div class="footer-links">
+        <h4>Support</h4>
+        <a href="#">Help Center</a>
+        <a href="#">Safety</a>
+        <a href="#">Terms</a>
+        <a href="#">Privacy</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 CityGuide India. Made with ❤️ for travelers.</p>
+    </div>
+  </div>
+</footer>
+
+<!-- Modal Container -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <h3 id="modal-title"></h3>
+      <button class="icon-btn" onclick="closeModal()">
+        <span class="material-icons-round">close</span>
+      </button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
