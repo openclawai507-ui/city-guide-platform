@@ -9,7 +9,6 @@ redirects = []
 [build]
 publish = "/Users/abhinavjain/.openclaw/workspace/city-guide-platform"
 publishOrigin = "default"
-base = "/Users/abhinavjain/.openclaw/workspace/city-guide-platform"
 
 [build.environment]
 
