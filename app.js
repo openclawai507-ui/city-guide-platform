@@ -1158,6 +1158,7 @@ async function renderAdminDashboard(app) {
         ${[
           { id: 'dashboard', icon: 'dashboard', label: 'Dashboard' },
           { id: 'guides', icon: 'group', label: 'Manage Guides' },
+          { id: 'onboarding', icon: 'how_to_reg', label: 'Guide Onboarding' },
           { id: 'bookings', icon: 'calendar_month', label: 'Bookings' },
           { id: 'reviews', icon: 'reviews', label: 'Reviews' },
           { id: 'activity', icon: 'history', label: 'Activity Log' },
@@ -1172,7 +1173,10 @@ async function renderAdminDashboard(app) {
 
 window.switchAdminTab = async function(tab) {
   state.adminTab = tab;
-  document.querySelectorAll('.admin-sidebar-item').forEach(el => el.classList.toggle('active', el.textContent.trim() === { dashboard:'Dashboard', guides:'Manage Guides', bookings:'Bookings', reviews:'Reviews', activity:'Activity Log', sessions:'Sessions' }[tab]));
+  document.querySelectorAll('.admin-sidebar-item').forEach((el, i) => {
+    const ids = ['dashboard','guides','onboarding','bookings','reviews','activity','sessions'];
+    el.classList.toggle('active', ids[i] === tab);
+  });
   await logActivity('admin_tab_switch', 'admin', tab);
   await loadAdminTab(tab);
 };
@@ -1182,6 +1186,7 @@ async function loadAdminTab(tab) {
   if (!el) return;
   if (tab === 'dashboard') await adminDashboardTab(el);
   else if (tab === 'guides') await adminGuidesTab(el);
+  else if (tab === 'onboarding') await adminOnboardingTab(el);
   else if (tab === 'bookings') await adminBookingsTab(el);
   else if (tab === 'reviews') await adminReviewsTab(el);
   else if (tab === 'activity') await adminActivityTab(el);
@@ -1287,6 +1292,174 @@ function getActivityText(a) {
   return texts[a.type] || `performed ${a.type} on ${a.target}`;
 }
 
+// --- Admin: Guide Onboarding ---
+async function adminOnboardingTab(el) {
+  const allAttempts = await db.quizAttempts.orderBy('createdAt').reverse().toArray();
+  const pendingGuides = await db.guides.where('status').equals('pending').toArray();
+  const formatT = s => s >= 60 ? `${Math.floor(s/60)}m ${s%60}s` : `${s}s`;
+
+  // Group attempts by guide name
+  const byGuide = {};
+  allAttempts.forEach(a => {
+    const name = a.guideName || 'Unknown';
+    if (!byGuide[name]) byGuide[name] = [];
+    byGuide[name].push(a);
+  });
+
+  // Stats
+  const totalAttempts = allAttempts.length;
+  const passedFirst = allAttempts.filter(a => a.passed && a.attemptNumber === 1).length;
+  const avgScore = totalAttempts ? Math.round(allAttempts.reduce((s,a) => s + (a.score||0), 0) / totalAttempts) : 0;
+  const avgTime = totalAttempts ? Math.round(allAttempts.filter(a => a.totalTimeSec).reduce((s,a) => s + a.totalTimeSec, 0) / allAttempts.filter(a => a.totalTimeSec).length) : 0;
+
+  el.innerHTML = `
+    <h3 style="font-size:18px;font-weight:600;margin-bottom:16px">📋 Guide Onboarding Analytics</h3>
+
+    <div class="stat-grid" style="margin-bottom:24px">
+      <div class="stat-card"><div class="stat-card-icon" style="background:var(--md-primary-container);color:var(--md-primary)"><span class="material-symbols-rounded">quiz</span></div><div class="stat-card-value">${totalAttempts}</div><div class="stat-card-label">Total Quiz Attempts</div></div>
+      <div class="stat-card"><div class="stat-card-icon" style="background:var(--md-success-container);color:var(--md-success)"><span class="material-symbols-rounded">emoji_events</span></div><div class="stat-card-value">${passedFirst}</div><div class="stat-card-label">Passed 1st Try</div></div>
+      <div class="stat-card"><div class="stat-card-icon" style="background:var(--md-secondary-container);color:var(--md-secondary)"><span class="material-symbols-rounded">percent</span></div><div class="stat-card-value">${avgScore}%</div><div class="stat-card-label">Avg Score</div></div>
+      <div class="stat-card"><div class="stat-card-icon" style="background:var(--md-tertiary-container);color:var(--md-tertiary)"><span class="material-symbols-rounded">timer</span></div><div class="stat-card-value">${formatT(avgTime)}</div><div class="stat-card-label">Avg Quiz Time</div></div>
+    </div>
+
+    <!-- Pending Guide Onboarding Details -->
+    ${pendingGuides.length ? `<h3 style="font-size:16px;font-weight:600;margin-bottom:12px">⏳ Pending Guides — Full Onboarding Details</h3>
+    ${pendingGuides.map(g => {
+      const guideAttempts = allAttempts.filter(a => a.guideName === g.name);
+      const langAttempts = guideAttempts.filter(a => a.type === 'language');
+      const cityAttempts = guideAttempts.filter(a => a.type === 'city');
+      const lastLang = langAttempts[0];
+      const lastCity = cityAttempts[0];
+
+      return `<div class="md-card-elevated" style="padding:20px;margin-bottom:16px">
+        <!-- Guide Header -->
+        <div class="flex items-center gap-12 mb-16" style="flex-wrap:wrap">
+          <div class="guide-avatar" style="width:56px;height:56px"><img src="${getAvatar(g.name)}" alt="${g.name}"></div>
+          <div style="flex:1;min-width:200px">
+            <div style="font-size:18px;font-weight:600">${g.name}</div>
+            <div style="font-size:13px;color:var(--md-on-surface-variant)">${getCityName(g.city)} · Applied ${timeAgo(g.createdAt)}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+              ${g.languages.map(l => `<span class="chip selected" style="font-size:11px;padding:2px 8px">${l}</span>`).join('')}
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+            <div style="display:flex;align-items:center;gap:6px">
+              <label style="font-size:12px;color:var(--md-outline);white-space:nowrap">₹/hr:</label>
+              <input type="number" class="md-input" id="onboard-price-${g.id}" min="200" max="5000" step="50" placeholder="Set rate" style="width:110px;padding:6px 10px;font-size:13px">
+            </div>
+            <div class="flex gap-8">
+              <button class="md-btn md-btn-filled md-btn-sm" onclick="adminApproveGuideWithPrice('${g.id}','onboard-price-${g.id}')"><span class="material-symbols-rounded">check</span>Approve</button>
+              <button class="md-btn md-btn-outlined md-btn-sm" style="color:var(--md-error);border-color:var(--md-error)" onclick="adminRejectGuide('${g.id}')"><span class="material-symbols-rounded">close</span>Reject</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bio -->
+        <div style="font-size:13px;color:var(--md-on-surface-variant);line-height:1.6;padding:12px;background:var(--md-surface-container);border-radius:var(--md-radius-sm);margin-bottom:16px">${g.bio}</div>
+
+        <!-- Specialties -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:12px;font-weight:600;color:var(--md-outline);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Specialties</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">${g.specialties.map(s => `<span class="chip" style="font-size:11px;padding:2px 8px">${s}</span>`).join('')}</div>
+        </div>
+
+        <!-- Quiz Results Grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <!-- Language Quiz -->
+          <div style="padding:14px;background:var(--md-surface-container);border-radius:var(--md-radius-md);border-left:4px solid ${lastLang?.passed ? 'var(--md-success)' : 'var(--md-error)'}">
+            <div style="font-size:13px;font-weight:600;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+              <span>🗣️ Language Quiz</span>
+              <span class="badge ${lastLang?.passed ? 'badge-success' : 'badge-error'}" style="font-size:10px">${lastLang?.passed ? 'PASSED' : lastLang ? 'FAILED' : 'N/A'}</span>
+            </div>
+            ${lastLang ? `
+              <div style="font-size:24px;font-weight:700;color:${lastLang.passed ? 'var(--md-success)' : 'var(--md-error)'};margin-bottom:4px">${lastLang.score}%</div>
+              <div style="font-size:12px;color:var(--md-outline);display:grid;gap:4px">
+                <div class="flex justify-between"><span>Attempts:</span><strong>${langAttempts.length}</strong></div>
+                <div class="flex justify-between"><span>Total Time:</span><strong>${formatT(lastLang.totalTimeSec || 0)}</strong></div>
+                <div class="flex justify-between"><span>Avg/Question:</span><strong>${formatT(lastLang.avgTimeSec || 0)}</strong></div>
+                ${lastLang.timings ? `<div style="margin-top:6px;font-size:11px">
+                  <div style="font-weight:600;margin-bottom:4px">Per Question:</div>
+                  <div style="display:flex;gap:4px;flex-wrap:wrap">${lastLang.timings.map((t, i) => {
+                    const correct = lastLang.answers[i] === (LANGUAGE_QUIZZES.english[i]?.correct ?? -1);
+                    return `<span style="padding:2px 6px;border-radius:4px;background:${correct ? 'var(--md-success-container)' : 'var(--md-error-container)'};color:${correct ? 'var(--md-success)' : 'var(--md-error)'};font-weight:600">Q${i+1}: ${t}s</span>`;
+                  }).join('')}</div>
+                </div>` : ''}
+              </div>
+            ` : '<div style="font-size:13px;color:var(--md-outline)">Not attempted</div>'}
+          </div>
+
+          <!-- City Quiz -->
+          <div style="padding:14px;background:var(--md-surface-container);border-radius:var(--md-radius-md);border-left:4px solid ${lastCity?.passed ? 'var(--md-success)' : 'var(--md-error)'}">
+            <div style="font-size:13px;font-weight:600;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+              <span>🏛️ ${getCityName(g.city)} Quiz</span>
+              <span class="badge ${lastCity?.passed ? 'badge-success' : 'badge-error'}" style="font-size:10px">${lastCity?.passed ? 'PASSED' : lastCity ? 'FAILED' : 'N/A'}</span>
+            </div>
+            ${lastCity ? `
+              <div style="font-size:24px;font-weight:700;color:${lastCity.passed ? 'var(--md-success)' : 'var(--md-error)'};margin-bottom:4px">${lastCity.score}%</div>
+              <div style="font-size:12px;color:var(--md-outline);display:grid;gap:4px">
+                <div class="flex justify-between"><span>Attempts:</span><strong>${cityAttempts.length}</strong></div>
+                <div class="flex justify-between"><span>Total Time:</span><strong>${formatT(lastCity.totalTimeSec || 0)}</strong></div>
+                <div class="flex justify-between"><span>Avg/Question:</span><strong>${formatT(lastCity.avgTimeSec || 0)}</strong></div>
+                ${lastCity.timings ? `<div style="margin-top:6px;font-size:11px">
+                  <div style="font-weight:600;margin-bottom:4px">Per Question:</div>
+                  <div style="display:flex;gap:4px;flex-wrap:wrap">${lastCity.timings.map((t, i) => {
+                    const cityQ = CITY_QUIZZES[g.city];
+                    const correct = cityQ ? lastCity.answers[i] === cityQ[i]?.correct : false;
+                    return `<span style="padding:2px 6px;border-radius:4px;background:${correct ? 'var(--md-success-container)' : 'var(--md-error-container)'};color:${correct ? 'var(--md-success)' : 'var(--md-error)'};font-weight:600">Q${i+1}: ${t}s</span>`;
+                  }).join('')}</div>
+                </div>` : ''}
+              </div>
+            ` : '<div style="font-size:13px;color:var(--md-outline)">Not attempted</div>'}
+          </div>
+        </div>
+
+        <!-- All Attempts History -->
+        ${guideAttempts.length > 2 ? `<details style="margin-top:12px">
+          <summary style="font-size:13px;font-weight:600;cursor:pointer;color:var(--md-primary)">View All ${guideAttempts.length} Attempts</summary>
+          <div style="margin-top:8px;overflow-x:auto">
+            <table class="md-table" style="font-size:12px">
+              <thead><tr><th>Type</th><th>Attempt</th><th>Score</th><th>Result</th><th>Time</th><th>Avg/Q</th><th>When</th></tr></thead>
+              <tbody>${guideAttempts.map(a => `<tr>
+                <td>${a.type === 'language' ? '🗣️ Language' : '🏛️ City'}</td>
+                <td>#${a.attemptNumber || 1}</td>
+                <td style="font-weight:700;color:${a.passed ? 'var(--md-success)' : 'var(--md-error)'}">${a.score}%</td>
+                <td><span class="badge ${a.passed ? 'badge-success' : 'badge-error'}" style="font-size:10px">${a.passed ? 'PASS' : 'FAIL'}</span></td>
+                <td>${formatT(a.totalTimeSec || 0)}</td>
+                <td>${formatT(a.avgTimeSec || 0)}</td>
+                <td>${timeAgo(a.createdAt)}</td>
+              </tr>`).join('')}</tbody>
+            </table>
+          </div>
+        </details>` : ''}
+      </div>`;
+    }).join('')}` : '<div class="empty-state"><span class="material-symbols-rounded">how_to_reg</span><h3>No Pending Guides</h3><p>All guide applications have been reviewed</p></div>'}
+
+    <!-- All Quiz Attempts Table -->
+    ${allAttempts.length ? `<h3 style="font-size:16px;font-weight:600;margin:24px 0 12px">📊 All Quiz Attempts (${allAttempts.length})</h3>
+    <div style="overflow-x:auto">
+      <table class="md-table" style="font-size:13px">
+        <thead><tr><th>Guide</th><th>Quiz</th><th>Attempt</th><th>Score</th><th>Result</th><th>Total Time</th><th>Avg/Q</th><th>Fastest Q</th><th>Slowest Q</th><th>When</th></tr></thead>
+        <tbody>${allAttempts.slice(0, 50).map(a => {
+          const fastest = a.timings?.length ? Math.min(...a.timings) : 0;
+          const slowest = a.timings?.length ? Math.max(...a.timings) : 0;
+          return `<tr>
+            <td><strong>${a.guideName || 'Unknown'}</strong></td>
+            <td>${a.type === 'language' ? '🗣️ Lang' : '🏛️ City'}</td>
+            <td>#${a.attemptNumber || 1}</td>
+            <td style="font-weight:700;color:${a.passed ? 'var(--md-success)' : 'var(--md-error)'}">${a.score}%</td>
+            <td><span class="badge ${a.passed ? 'badge-success' : 'badge-error'}" style="font-size:10px">${a.passed ? 'PASS' : 'FAIL'}</span></td>
+            <td>${formatT(a.totalTimeSec || 0)}</td>
+            <td>${formatT(a.avgTimeSec || 0)}</td>
+            <td style="color:var(--md-success)">${formatT(fastest)}</td>
+            <td style="color:var(--md-error)">${formatT(slowest)}</td>
+            <td>${timeAgo(a.createdAt)}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>` : ''}
+  `;
+}
+
 // --- Admin: Guides ---
 async function adminGuidesTab(el) {
   const guides = await db.guides.toArray();
@@ -1343,15 +1516,15 @@ async function adminGuidesTab(el) {
   `;
 }
 
-window.adminApproveGuideWithPrice = async function(id) {
-  const priceInput = document.getElementById('price-' + id);
+window.adminApproveGuideWithPrice = async function(id, inputId) {
+  const priceInput = document.getElementById(inputId || ('price-' + id));
   const price = priceInput ? parseInt(priceInput.value) : 0;
   if (!price || price < 200) { snackbar('Please set an hourly rate (min ₹200) before approving', 'warning'); if (priceInput) priceInput.focus(); return; }
   await db.guides.update(id, { status: 'verified', price });
   const g = await db.guides.get(id);
   await logActivity('guide_approved', 'admin', id, { name: g?.name, price });
   snackbar(`${g?.name || 'Guide'} approved at ₹${price}/hr!`, 'success');
-  loadAdminTab('guides');
+  loadAdminTab(state.adminTab);
 };
 
 window.adminApproveGuide = async function(id) {
